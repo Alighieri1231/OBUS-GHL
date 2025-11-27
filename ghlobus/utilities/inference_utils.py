@@ -41,6 +41,9 @@ from ghlobus.models.TvCnnFeatureMap import TvCnnFeatureMap
 from ghlobus.models.BasicAdditiveAttention import MultipleAdditiveAttention
 from ghlobus.models.Cnn2RnnClassifier import Cnn2RnnClassifier
 from ghlobus.models.Cnn2RnnRegressor import Cnn2RnnRegressor
+from ghlobus.models.TvMilCnn import TvMilCnn
+from ghlobus.models.MilAttention import MilAttention
+from ghlobus.models.MultiClassifier import MultiClassifier
 
 
 # Useful variables for regression
@@ -135,6 +138,63 @@ def load_Cnn2RnnClassifier_model(modelpath: os.PathLike,
         cnn=TvCnnFeatureMap(cnn_name=cnn_name,
                             cnn_weights_name=weights_name,
                             cnn_layer_id=cnn_layer_id),
+    )
+
+    # Set the .return_intermediates attribute to 'True', so that .forward() returns
+    # all intermediate states of importance (feature vectors, context vectors, attention scores)
+    model.report_intermediates = True
+    # Set model to eval mode, and freeze weights
+    model.eval()
+    model.freeze()
+
+    return model
+
+
+def load_TWIN_model(modelpath: os.PathLike,
+                    device: str,
+                    cnn_name: str = 'MobileNet_V2',
+                    weights_name: str = 'IMAGENET1K_V2',
+                    ) -> LightningModule:
+    """
+    Load a Cnn2RnnClassifier model for TWIN (multiple gestation) classification
+    from a checkpoint for inference. Uses the iMIL (Multiple Instance Learning)
+    architecture with TvMilCnn, MilAttention, and MultiClassifier components.
+
+    ! Note: Sets the `report_intermediates` attribute to True, which returns
+    ! intermediate results from the network
+
+    Parameters:
+        modelpath (os.PathLike):       Path to the model checkpoint.
+        device (str):                  Device to load the model on.
+        cnn_name (str, optional):      Name of the CNN. Defaults to 'MobileNet_V2'.
+        weights_name (str, optional):  Name of the weights. Defaults to 'IMAGENET1K_V2'.
+
+    Returns:
+        LightningModule: The loaded model.
+    """
+    # Create the iMIL architecture components matching the training configuration
+    cnn = TvMilCnn(
+        tv_model_name=cnn_name,
+        tv_weights_name=weights_name,
+        mil_format='frame',
+        pretrained_path=None,
+    )
+    rnn = MilAttention(
+        input_dim=1000,
+        embedding_dim=[512, 256],
+        attention_dim=64,
+    )
+    classifier = MultiClassifier(
+        in_features=256,
+        num_classes=2,
+    )
+
+    model = Cnn2RnnClassifier.load_from_checkpoint(
+        checkpoint_path=f'{modelpath}',
+        map_location=f'{device}',
+        cnn=cnn,
+        rnn=rnn,
+        classifier=classifier,
     )
 
     # Set the .return_intermediates attribute to 'True', so that .forward() returns
