@@ -1,0 +1,51 @@
+seed_everything: 42
+
+trainer:
+  accelerator: auto
+  devices: 1
+  max_epochs: 30
+  log_every_n_steps: 10
+  default_root_dir: ./outputs/liverpdff
+
+model:
+  class_path: liverpdff.models.Cnn2RnnRegressor
+  init_args:
+    lr: 5.0e-5
+    clamp_min: 0.0
+    clamp_max: 40.0
+    cnn:
+      class_path: ghlobus.models.TvCnn
+      init_args:
+        tv_model_name: MobileNet_V2
+        tv_weights_name: IMAGENET1K_V2
+    rnn:
+      class_path: ghlobus.models.BasicAdditiveAttention
+      init_args:
+        input_dim: 1000
+        attention_dim: 64
+    regressor:
+      class_path: liverpdff.models.MLPRegressor
+      init_args:
+        input_dim: 1000
+        hidden_dims:
+          - 256
+        dropout: 0.2
+
+data:
+  class_path: liverpdff.data.VideoDataModuleTraining
+  init_args:
+    root_dir: /mnt/castaneda_lab/GitHub/liver_ai_25/research_tasks/output_segmentations_total1
+    excel_path: /mnt/castaneda_lab/GitHub/liver_ai_25/Clinical Liver Study enrollments.xlsx
+    batch_size: 8
+    num_workers: 4
+    frames: 64
+    channels: 3
+    image_dims:
+      - 256
+      - 256
+    frame_glob: "*_rgb.png"
+    val_split: 0.2
+    seed: 42
+    split_mode: random_stratified
+    use_stratified_sampler: true
+    split_csv_dir: ./outputs/liverpdff/splits

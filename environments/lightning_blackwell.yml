@@ -1,0 +1,22 @@
+name: lightning_blackwell
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - --extra-index-url https://download.pytorch.org/whl/cu130
+      - torch==2.10.0+cu130
+      - torchvision==0.25.0+cu130
+      - torchaudio==2.10.0+cu130
+      - lightning==2.6.1
+      - "jsonargparse[signatures]>=4.27.7"
+      - pandas
+      - openpyxl
+      - pillow
+      - pydicom
+      - natsort
+      - torchmetrics
+      - wandb
+      - tensorboard
+      - scikit-learn
